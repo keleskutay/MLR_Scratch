@@ -3,14 +3,6 @@ import pandas as pd
  
 class StandardScaler:
     def __init__(self):
-        self.mapping = {
-            "no" : 0,
-            "yes" : 1,
-            "furnished" : 2,
-            "semi-furnished" : 3,
-            "unfurnished" : 4
-            }
-    
         self.feature_means = {}
         self.feature_stds = {}
         self.object_columns = {}
@@ -28,7 +20,7 @@ class StandardScaler:
         
         # Encode object columns if any
         if self.object_columns:
-            X_copy[self.object_columns] = X_copy[self.object_columns].replace(self.mapping)
+            X_copy[self.object_columns] = X_copy[self.object_columns]
 
         # Standardize numeric columns
         for col in self.feature_means:
@@ -79,7 +71,7 @@ class LinearRegression:
             sum_ += predict - self.train_y[i]
         return (1 / row) * sum_
     
-    def gradient_descent(self, learning_rate = 0.001, epoch = 5000, verbose = True):
+    def gradient_descent(self, learning_rate = 0.0001, epoch = 5000, verbose = True):
         for i in range(epoch):
             self.w = self.w - learning_rate * self.gradient_weight(self.w, self.b)
             self.b = self.b - learning_rate * self.gradient_bias(self.w, self.b)
