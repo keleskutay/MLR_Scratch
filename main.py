@@ -1,39 +1,46 @@
 import numpy as np
 import pandas as pd
  
-class StandartScaler:
-    mapping = {
-        "no" : 0,
-        "yes" : 1,
-        "furnished" : 2,
-        "semi-furnished" : 3,
-        "unfurnished" : 4
-        }
+class StandardScaler:
+    def __init__(self):
+        self.mapping = {
+            "no" : 0,
+            "yes" : 1,
+            "furnished" : 2,
+            "semi-furnished" : 3,
+            "unfurnished" : 4
+            }
     
-    feature_means = {}
-    feature_stds = {}
+        self.feature_means = {}
+        self.feature_stds = {}
+        self.object_columns = {}
     
     def fit(self, X: pd.DataFrame):
-        df = X.select_dtypes(include=np.number)
-        for (columnName, columnData) in df.items():
-            mean = columnData.mean()
-            std = columnData.std()
-            self.feature_means[columnName] = mean
-            self.feature_stds[columnName] = std
+        numeric_cols = X.select_dtypes(include=[np.number]).columns
+        for col in numeric_cols:
+            self.feature_means[col] = X[col].mean()
+            self.feature_stds[col] = X[col].std()
+        
+        self.object_columns = X.select_dtypes(include=[object]).columns.tolist()
 
     def transform(self, X: pd.DataFrame):
-        df_n = X.select_dtypes(include=np.number)
-        df_o = X.select_dtypes(include=[object]).replace(StandartScaler.mapping)
-
-        for (columnName, columnData) in df_n.items():
-            for index, row in enumerate(columnData):
-                df_n.loc[index, columnName] = (row - self.feature_means[columnName]) / self.feature_stds[columnName]
+        X_copy = X.copy()
         
-        return pd.concat([df_n, df_o],axis=1)
+        # Encode object columns if any
+        if self.object_columns:
+            X_copy[self.object_columns] = X_copy[self.object_columns].replace(self.mapping)
 
-    def inverse_transform(self, scaled_y):
-        y = scaled_y * self.feature_stds["price"] + self.feature_means["price"]
-        return y
+        # Standardize numeric columns
+        for col in self.feature_means:
+            X_copy[col] = (X_copy[col] - self.feature_means[col]) / self.feature_stds[col]
+        
+        return X_copy
+
+    def inverse_transform(self, transformed_y: np.number, target_column: str):
+       if target_column not in self.feature_means:
+            raise ValueError(f"Target column '{target_column}' was not fitted.")
+
+       return transformed_y * self.feature_stds[target_column] + self.feature_means[target_column]
 
 
 class LinearRegression:
@@ -72,7 +79,7 @@ class LinearRegression:
             sum_ += predict - self.train_y[i]
         return (1 / row) * sum_
     
-    def gradient_descent(self, learning_rate = 0.001, epoch = 50000, verbose = True):
+    def gradient_descent(self, learning_rate = 0.001, epoch = 5000, verbose = True):
         for i in range(epoch):
             self.w = self.w - learning_rate * self.gradient_weight(self.w, self.b)
             self.b = self.b - learning_rate * self.gradient_bias(self.w, self.b)
@@ -83,7 +90,7 @@ class LinearRegression:
 
 if __name__ == '__main__':
     df = pd.read_csv('./Housing.csv').fillna(0)
-    preprocess = StandartScaler()
+    preprocess = StandardScaler()
     preprocess.fit(df)
     processed = preprocess.transform(df)
 
@@ -100,5 +107,5 @@ if __name__ == '__main__':
     test_X = test_X.drop("price", axis=1).values
     #print(obj.predict(test_X))
 
-    inverse = preprocess.inverse_transform(obj.predict(test_X))
+    inverse = preprocess.inverse_transform(obj.predict(test_X), "price")
     print(inverse)
