@@ -4,27 +4,41 @@ from main import StandardScaler
 
 mapping = {
     "M": 0,
-    "B" : 1
+    "B" : 1,
+    "V": 2,
 }
 
 class LogisticRegression:
-    def __init__(self, X, y = None, w = None, b = 0.0):
+    def __init__(self, X, y, random_state=None):
         self.X = X
         self.y = y
-        self.b = b
+        self.n_classes = len(np.unique(y))
         n_features = X.shape[1]
-        np.random.seed(42)
-        if w is None:
-            self.w = np.random.randn(n_features) * 0.01  # shape: (n_features,)
+        if random_state is not None:
+            np.random.seed(random_state)  # <-- only setting the seed
+
+        if self.n_classes == 2:
+            self.w = np.random.randn(n_features) * 0.01
+            self.b = 0.0
         else:
-            self.w = w
+            self.w = np.random.randn(n_features, self.n_classes) * 0.01
+            self.b = np.zeros(self.n_classes)  # Bias also per class        
+
+    def predict_proba(self, X):
+        z = self.calc_linear_combination(X)
+        if(self.n_classes == 2):
+            sigmoid = self.calc_sigmoid(z)
+            return sigmoid
+        else:
+            softmax = self.calc_softmax(z)
+            return softmax
 
     def fit(self):
         self.gradient_descent()
 
     def gradient_descent(self, learning_rate = 0.0001, epoch = 100000, verbose = True):
         for i in range(epoch):
-            z = self.predict(self.X)
+            z = self.predict_proba(self.X)
             self.w = self.w - learning_rate * self.calc_gradient_weight(z)
             self.b = self.b - learning_rate * self.calc_gradient_bias(z)
 
@@ -57,12 +71,26 @@ class LogisticRegression:
     def calc_linear_combination(self, X):
         return np.dot(X, self.w) + self.b
     
-    def calc_sigmoid(self, combination):
-        return 1 / (1 + np.power(np.e,-combination))
+    def calc_sigmoid(self, z):
+        return 1 / (1 + np.power(np.e, -z))
+
+    def calc_softmax(self, z):
+        sf_result = np.zeros_like(z)
+        
+        for j in range(np.shape(z)[0]):
+            exp_row = np.exp(z[j])
+            sum_exp_row = np.sum(exp_row)
+            sf_result[j] = exp_row / sum_exp_row
+
+        return sf_result
+
+
+
 
 
 if __name__ == "__main__":
-    p = pd.read_csv("data.csv").fillna(0)
+    p = pd.read_csv("Cancer.csv").fillna(0)
+    np.random.seed(42)
     scaler = StandardScaler()
     scaler.fit(p)
     p = scaler.transform(p)
@@ -72,11 +100,4 @@ if __name__ == "__main__":
     train_y = p["diagnosis"].values
 
     res = LogisticRegression(train_X,train_y)
-    res.fit()
-
-    test_pd = pd.read_csv("test.csv").fillna(0)
-    test_pd = scaler.transform(test_pd)
-    test_pd = test_pd.replace(mapping)
-
-    test_X = test_pd.drop("diagnosis", axis=1).values
-    
+    print(res.predict_proba(train_X))
