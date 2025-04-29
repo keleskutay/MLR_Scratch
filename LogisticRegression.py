@@ -2,17 +2,13 @@ import numpy as np
 import pandas as pd
 from main import StandardScaler
 
-mapping = {
-    "M": 0,
-    "B" : 1,
-    "V": 2,
-}
-
 class LogisticRegression:
     def __init__(self, X, y, random_state=None):
         self.X = X
         self.y = y
         self.n_classes = np.unique(y)
+        self.mapping =  {class_name: idx for idx, class_name in enumerate(self.n_classes)}
+
         n_features = X.shape[1]
         if random_state is not None:
             np.random.seed(random_state)  # <-- only setting the seed
@@ -58,7 +54,7 @@ class LogisticRegression:
             tmp = z.copy()
             counter = 0
             for y, y_ in zip(self.y, tmp):
-                y_[y] = y_[y] - 1
+                y_[self.mapping[y]] = y_[self.mapping[y]] - 1
                 tmp[counter] = y_
                 counter+=1
             return (1 / m) * np.dot(self.X.T, tmp)
@@ -74,7 +70,7 @@ class LogisticRegression:
             tmp = z.copy()
             counter = 0
             for y, y_ in zip(self.y, tmp):
-                y_[y] = y_[y] - 1
+                y_[self.mapping[y]] = y_[self.mapping[y]] - 1
                 tmp[counter] = y_
                 counter+=1
             return (1 / m) * np.sum(tmp, axis=0)
@@ -88,7 +84,7 @@ class LogisticRegression:
     def calc_multi_class_cross_entropy(self, y_):
         total_loss = 0
         for i,j in zip(self.y, y_):
-            total_loss += -np.log(j[i])
+            total_loss += -np.log(j[self.mapping[i]])
         return total_loss / len(self.y)
 
     def calc_linear_combination(self, X):
@@ -114,7 +110,6 @@ if __name__ == "__main__":
     scaler = StandardScaler()
     scaler.fit(p)
     p = scaler.transform(p)
-    p = p.replace(mapping)
 
     train_X = p.drop("diagnosis",axis=1).values
     train_y = p["diagnosis"].values

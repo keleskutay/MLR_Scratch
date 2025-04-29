@@ -79,25 +79,3 @@ class LinearRegression:
             if i % 100 == 0 and verbose == True:
                 print(self.loss_function(self.w, self.b, self.train_X, self.train_y))
 
-
-if __name__ == '__main__':
-    df = pd.read_csv('./Housing.csv').fillna(0)
-    preprocess = StandardScaler()
-    preprocess.fit(df)
-    processed = preprocess.transform(df)
-
-
-    train_X = processed.drop("price", axis=1).values
-    train_y = processed["price"].values
-    
-    obj = LinearRegression(train_X, train_y)
-    obj.fit()
-
-    test_df = pd.read_csv('./test.csv').fillna(0)
-    test_X = preprocess.transform(test_df)
-    
-    test_X = test_X.drop("price", axis=1).values
-    #print(obj.predict(test_X))
-
-    inverse = preprocess.inverse_transform(obj.predict(test_X), "price")
-    print(inverse)
